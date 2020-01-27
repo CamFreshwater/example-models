@@ -38,7 +38,7 @@ cjs_add  <- stan(here::here("BPA", "Ch.07", "cjs_add.stan"),
                  seed = 1,
                  open_progress = FALSE)
 add_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add.stan"))
-add2_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add2.stan"))
+addX_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add2.stan"))
 cjs_add2  <- sampling(add2_mod, data = stan_data, init = inits,
                       pars = params2,
                       chains = nc, iter = ni, warmup = nb, thin = nt,

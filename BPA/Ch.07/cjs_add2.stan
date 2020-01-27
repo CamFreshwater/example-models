@@ -61,6 +61,7 @@ transformed data {
   int<lower=0,upper=n_occasions> first[nind];
   int<lower=0,upper=n_occasions> last[nind];
   real beta_phi1 = 0;      // Corner constraint
+  real beta_p1 = 0;      // Corner constraint
   //  real beta_phi1;
 
   //  n_occ_minus_1 = n_occasions - 1;
@@ -75,9 +76,11 @@ parameters {
   real<lower=0,upper=1> mean_phi;    // Mean survival
   real<lower=0,upper=1> mean_p;      // Mean recapture
   vector[n_occ_minus_1] gamma_phi;   // Time effects for phi
-  vector<lower=0,upper=1>[g] p_g;    // Group-spec. recapture
+  vector[n_occ_minus_1] gamma_p;     // Time effects for phi
   real beta_phi2;                    // Prior for difference in male and
                                      // female survival
+  real beta_p2;                      // Prior for difference in male and
+                                     // female recap
 }
 
 transformed parameters {
@@ -85,9 +88,12 @@ transformed parameters {
   matrix<lower=0,upper=1>[nind, n_occ_minus_1] p;
   matrix<lower=0,upper=1>[nind, n_occasions] chi;
   vector[g] beta_phi;
+  vector[g] beta_p;
 
   beta_phi[1] = beta_phi1;
   beta_phi[2] = beta_phi2;
+  beta_p[1] = beta_p1;
+  beta_p[2] = beta_p2;
 
   // Constraints
   for (i in 1:nind) {
@@ -97,7 +103,8 @@ transformed parameters {
     }
     for (t in first[i]:n_occ_minus_1) {
       phi[i, t] = inv_logit(beta_phi[group[i]] + gamma_phi[t]);
-      p[i, t] = p_g[group[i]];
+      //p[i, t] = p_g[group[i]];
+      p[i, t] = beta_p[group[i]] + gamma_p[t];
     }
   }
 
@@ -111,6 +118,7 @@ model {
   //  mean_p ~ uniform(0, 1);
   //  p_g ~ uniform(0, 1);
   beta_phi2 ~ normal(0, 10)T[-10,10];
+  beta_p2 ~ normal(0, 10)T[-10,10];
   gamma_phi ~ normal(0, 10);
 
   // Likelihood
