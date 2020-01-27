@@ -2,6 +2,9 @@
 ## 7.6. Models with time and group effects
 ## 7.6.1. Fixed group and time effects
 
+## Additions by CF include a second time-varying estimate for detection
+# probability p
+
 library(rstan)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
@@ -10,10 +13,11 @@ set.seed(123)
 ## Read data
 ## The data generation code is in bpa-code.txt, available at
 ## http://www.vogelwarte.ch/de/projekte/publikationen/bpa/complete-code-and-data-files-of-the-book.html
-stan_data <- read_rdump("cjs_add.data.R")
+stan_data <- read_rdump(here::here("BPA", "Ch.07", "cjs_add.data.R"))
 
 ## Parameters monitored
 params <- c("phi_g1", "phi_g2", "p_g", "beta")
+params2 <- c("phi_g1", "phi_g2", "p_g1", "p_g2", "beta_phi", "beta_p")
 
 ## MCMC settings
 ni <- 3000
@@ -28,11 +32,18 @@ inits <- lapply(1:nc, function(i) {
          p_g = runif(length(unique(stan_data$group)), 0, 1))})
 
 ## Call Stan from R
-cjs_add  <- stan("cjs_add.stan",
+cjs_add  <- stan(here::here("BPA", "Ch.07", "cjs_add.stan"),
                  data = stan_data, init = inits, pars = params,
                  chains = nc, iter = ni, warmup = nb, thin = nt,
                  seed = 1,
                  open_progress = FALSE)
+add_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add.stan"))
+add2_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add2.stan"))
+cjs_add2  <- sampling(add2_mod, data = stan_data, init = inits,
+                      pars = params2,
+                      chains = nc, iter = ni, warmup = nb, thin = nt,
+                      seed = 1, open_progress = FALSE)
+
 
 ## Summarize posteriors
 print(cjs_add, digits = 3)

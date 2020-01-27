@@ -10,7 +10,7 @@ set.seed(123)
 ## Read data
 ## The data generation code is in bpa-code.txt, available at
 ## http://www.vogelwarte.ch/de/projekte/publikationen/bpa/complete-code-and-data-files-of-the-book.html
-stan_data <- read_rdump("cjs_group.data.R")
+stan_data <- read_rdump(here::here("BPA", "Ch.07", "cjs_group.data.R"))
 
 ## Parameters monitored
 params <- c("mean_phi", "mean_p", "phi_g", "sigma")
@@ -27,10 +27,11 @@ inits <- lapply(1:nc, function(i) {
          p_g = runif(length(unique(stan_data$group)), 0, 1))})
 
 ## Call Stan from R
-cjs_group_raneff <- stan("cjs_group_raneff.stan",
+cjs_group_raneff <- stan(here::here("BPA", "Ch.07",
+                                    "cjs_group_raneff.stan"),
                          data = stan_data, init = inits, pars = params,
                          chains = nc, iter = ni, warmup = nb, thin = nt,
-                         control = list(adapt_delta = 0.99),
+                         control = list(adapt_delta = 0.9),
                          seed = 1,
                          open_progress = FALSE)
 ## Note: there may be divergent transitions after warmup.
