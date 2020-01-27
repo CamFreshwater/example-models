@@ -17,7 +17,6 @@ stan_data <- read_rdump(here::here("BPA", "Ch.07", "cjs_add.data.R"))
 
 ## Parameters monitored
 params <- c("phi_g1", "phi_g2", "p_g", "beta")
-params2 <- c("phi_g1", "phi_g2", "p_g1", "p_g2", "beta_phi", "beta_p")
 
 ## MCMC settings
 ni <- 3000
@@ -26,24 +25,41 @@ nb <- 1000
 nc <- 4
 
 ## Initial values
-inits <- lapply(1:nc, function(i) {
+inits1 <- lapply(1:nc, function(i) {
     list(gamma = rnorm(stan_data$n_occasions - 1),
          beta = c(0, rnorm(1)),
          p_g = runif(length(unique(stan_data$group)), 0, 1))})
 
 ## Call Stan from R
 cjs_add  <- stan(here::here("BPA", "Ch.07", "cjs_add.stan"),
-                 data = stan_data, init = inits, pars = params,
+                 data = stan_data, init = inits1, pars = params,
                  chains = nc, iter = ni, warmup = nb, thin = nt,
                  seed = 1,
                  open_progress = FALSE)
-add_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add.stan"))
+cjs_add_trim  <- stan(here::here("BPA", "Ch.07", "cjs_add_trim.stan"),
+                 data = stan_data, init = inits1, pars = params,
+                 chains = nc, iter = ni, warmup = nb, thin = nt,
+                 seed = 1,
+                 open_progress = FALSE)
+print(cjs_add, digits = 3)
+print(cjs_add_trim, digits = 3)
+
+
+# Adjusted model with time-varying detection probabilities
+params2 <- c("phi_g1", "phi_g2", "p_g1", "p_g2", "beta_phi", "beta_p")
+
+inits <- lapply(1:nc, function(i) {
+  list(gamma_phi = rnorm(stan_data$n_occasions - 1),
+       gamma_pp = rnorm(stan_data$n_occasions - 1),
+       beta_phi = c(0, rnorm(1)),
+       beta_p = c(0, rnorm(1)))})
+
 addX_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add2.stan"))
-cjs_add2  <- sampling(add2_mod, data = stan_data, init = inits,
+cjs_add2  <- sampling(addX_mod, data = stan_data, init = inits,
                       pars = params2,
                       chains = nc, iter = ni, warmup = nb, thin = nt,
                       seed = 1, open_progress = FALSE)
 
 
 ## Summarize posteriors
-print(cjs_add, digits = 3)
+print(cjs_add2, digits = 3)
