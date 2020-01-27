@@ -6,6 +6,7 @@
 # probability p
 
 library(rstan)
+library(tidyverse)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 set.seed(123)
@@ -63,3 +64,36 @@ cjs_add2  <- sampling(addX_mod, data = stan_data, init = inits,
 
 ## Summarize posteriors
 print(cjs_add2, digits = 3)
+
+# Extract phi estimates
+gen_int <- function(mcmc_est, parm, group) {
+  mu_phi <- apply(mcmc_est, 2, mean)
+  low_int <- apply(mcmc_est, 2, function(x) quantile(x, 0.05))
+  up_int <- apply(mcmc_est, 2, function(x) quantile(x, 0.95))
+  data.frame(stage = seq(1, length(mu_phi), by = 1),
+             mu = mu_phi,
+             low = low_int,
+             high = up_int,
+             par = parm,
+             group = group)
+}
+
+phi1 <- rstan::extract(cjs_add)$phi_g1
+dat1 <- gen_int(phi1, parm = "phi", group = "1")
+phi2 <- rstan::extract(cjs_add)$phi_g2
+dat2 <- gen_int(phi2, parm = "phi", group = "2")
+plot_dat <- rbind(dat1, dat2)
+
+ggplot(plot_dat, aes(x = as.factor(group), y = mu)) +
+  geom_pointrange(aes(ymin = low, ymax = high)) +
+  facet_wrap(~as.factor(stage))
+
+phi1b <- rstan::extract(cjs_add2)$phi_g1
+dat1b <- gen_int(phi1b, parm = "phi", group = "1")
+phi2b <- rstan::extract(cjs_add2)$phi_g2
+dat2b <- gen_int(phi2b, parm = "phi", group = "2")
+plot_datb <- rbind(dat1b, dat2b)
+
+ggplot(plot_datb, aes(x = as.factor(group), y = mu)) +
+  geom_pointrange(aes(ymin = low, ymax = high)) +
+  facet_wrap(~as.factor(stage))
