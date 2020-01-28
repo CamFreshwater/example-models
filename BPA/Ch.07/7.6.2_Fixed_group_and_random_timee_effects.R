@@ -2,6 +2,9 @@
 ## 7.6. Models with time and group effects
 ## 7.6.2. Fixed group and random time effects
 
+## Note these models are a jumping off point to account for covariance among
+# phi and p but as currently developed are not applicable to our tagging work
+
 library(rstan)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
@@ -46,9 +49,10 @@ cjs_temp_corr2 <- stan_model(here::here("BPA", "Ch.07", "cjs_temp_corr2.stan"))
 fit_temp_corr2  <- sampling(cjs_temp_corr2, data = stan_data,
                       #init = inits,
                       pars = params2,
-                      chains = 1, iter = ni, warmup = nb, thin = nt,
+                      chains = nc, iter = ni, warmup = nb, thin = nt,
                       seed = 1, open_progress = FALSE)
 print(fit_temp_corr2, digits = 3)
+saveRDS(fit_temp_corr2, here::here("BPA", "Ch.07", "gen_data", "hier2.rds"))
 
 
 gen_int <- function(mcmc_est, parm, group) {
@@ -65,10 +69,14 @@ gen_int <- function(mcmc_est, parm, group) {
 
 phi_re <- rstan::extract(fit_temp_corr2)$eta_phi %>%
   boot::inv.logit()
-dat1 <- gen_int(phi_re[, , 1], parm = "phi", group = "1")
-dat2 <- gen_int(phi_re[, , 2], parm = "phi", group = "2")
+# calculate cumulative survival
+cum_surv1 <- t(apply(phi_re[, , 1], 1, function(x) cumprod(x)))
+cum_surv2 <- t(apply(phi_re[, , 2], 1, function(x) cumprod(x)))
+
+dat1 <- gen_int(cum_surv1, parm = "phi", group = "1")
+dat2 <- gen_int(cum_surv2, parm = "phi", group = "2")
 plot_dat <- rbind(dat1, dat2)
 
-ggplot(plot_dat, aes(x = as.factor(group), y = mu)) +
+ggplot(plot_dat, aes(x = as.factor(stage), y = mu)) +
   geom_pointrange(aes(ymin = low, ymax = high)) +
-  facet_wrap(~as.factor(stage))
+  facet_wrap(~as.factor(group))

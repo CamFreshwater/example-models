@@ -55,15 +55,24 @@ inits <- lapply(1:nc, function(i) {
        beta_phi = c(0, rnorm(1)),
        beta_p = c(0, rnorm(1)))})
 
-addX_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add2.stan"))
-cjs_add2  <- sampling(addX_mod, data = stan_data, init = inits,
+add2_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add2.stan"))
+cjs_add2  <- sampling(add2_mod, data = stan_data, init = inits,
                       pars = params2,
                       chains = nc, iter = ni, warmup = nb, thin = nt,
                       seed = 1, open_progress = FALSE)
+print(cjs_add2, digits = 3, pars = c("phi_g1", "phi_g2", "p_g1", "p_g2",
+                                     "beta_p"))
+saveRDS(cjs_add2, here::here("BPA", "Ch.07", "gen_data", "add2.rds"))
 
+add_fixP_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add2_fixP.stan"))
+cjs_add2_fixP  <- sampling(add_fixP_mod, data = stan_data, init = inits,
+                      pars = params2,
+                      chains = nc, iter = ni, warmup = nb, thin = nt,
+                      seed = 1, open_progress = FALSE)
+print(cjs_add2_fixP, digits = 3, pars = c("phi_g1", "phi_g2", "p_g1", "p_g2",
+                                          "beta_p"))
+saveRDS(cjs_add2_fixP, here::here("BPA", "Ch.07", "gen_data", "add2_fixP.rds"))
 
-## Summarize posteriors
-print(cjs_add2, digits = 3)
 
 # Extract phi estimates
 gen_int <- function(mcmc_est, parm, group) {
@@ -78,9 +87,9 @@ gen_int <- function(mcmc_est, parm, group) {
              group = group)
 }
 
-phi1 <- rstan::extract(cjs_add)$phi_g1
+phi1 <- rstan::extract(cjs_add2)$phi_g1
 dat1 <- gen_int(phi1, parm = "phi", group = "1")
-phi2 <- rstan::extract(cjs_add)$phi_g2
+phi2 <- rstan::extract(cjs_add2)$phi_g2
 dat2 <- gen_int(phi2, parm = "phi", group = "2")
 plot_dat <- rbind(dat1, dat2)
 
@@ -88,9 +97,9 @@ ggplot(plot_dat, aes(x = as.factor(group), y = mu)) +
   geom_pointrange(aes(ymin = low, ymax = high)) +
   facet_wrap(~as.factor(stage))
 
-phi1b <- rstan::extract(cjs_add2)$phi_g1
+phi1b <- rstan::extract(cjs_add2_fixP)$phi_g1
 dat1b <- gen_int(phi1b, parm = "phi", group = "1")
-phi2b <- rstan::extract(cjs_add2)$phi_g2
+phi2b <- rstan::extract(cjs_add2_fixP)$phi_g2
 dat2b <- gen_int(phi2b, parm = "phi", group = "2")
 plot_datb <- rbind(dat1b, dat2b)
 
