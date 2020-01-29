@@ -14,31 +14,32 @@ set.seed(123)
 ## Read data
 ## The data generation code is in bpa-code.txt, available at
 ## http://www.vogelwarte.ch/de/projekte/publikationen/bpa/complete-code-and-data-files-of-the-book.html
-stan_data1 <- read_rdump(here::here("BPA", "Ch.07", "cjs_add.data.R"))
+stan_data <- read_rdump(here::here("BPA", "Ch.07", "cjs_add.data.R"))
 
 ## Parameters monitored
 params <- c("phi_g1", "phi_g2", "p_g", "beta")
 
 ## MCMC settings
 ni <- 3000
-nt <- 2
-nb <- 1000
+nt <- 1
+nb <- 1500
 nc <- 4
 
 ## Initial values
 inits1 <- lapply(1:nc, function(i) {
-    list(gamma = rnorm(stan_data1$n_occasions - 1),
+    list(gamma = rnorm(stan_data$n_occasions - 1),
          beta = c(0, rnorm(1)),
-         p_g = runif(length(unique(stan_data1$group)), 0, 1))})
+         p_g = runif(length(unique(stan_data$group)), 0, 1))})
 
 ## Call Stan from R
 cjs_add  <- stan(here::here("BPA", "Ch.07", "cjs_add.stan"),
-                 data = stan_data1, init = inits1, pars = params,
+                 data = stan_data, init = inits1, pars = params,
                  chains = nc, iter = ni, warmup = nb, thin = nt,
                  seed = 1,
                  open_progress = FALSE)
+saveRDS(cjs_add, here::here("BPA", "Ch.07", "gen_data", "add.rds"))
 cjs_add_trim  <- stan(here::here("BPA", "Ch.07", "cjs_add_trim.stan"),
-                 data = stan_data1, init = inits1, pars = params,
+                 data = stan_data, init = inits1, pars = params,
                  chains = nc, iter = ni, warmup = nb, thin = nt,
                  seed = 1,
                  open_progress = FALSE)
@@ -50,13 +51,13 @@ print(cjs_add_trim, digits = 3)
 params2 <- c("phi_g1", "phi_g2", "p_g1", "p_g2", "beta_phi", "beta_p")
 
 inits <- lapply(1:nc, function(i) {
-  list(gamma_phi = rnorm(stan_data1$n_occasions - 1),
-       gamma_pp = rnorm(stan_data1$n_occasions - 1),
+  list(gamma_phi = rnorm(stan_data$n_occasions - 1),
+       gamma_pp = rnorm(stan_data$n_occasions - 1),
        beta_phi = c(0, rnorm(1)),
        beta_p = c(0, rnorm(1)))})
 
 add2_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add2.stan"))
-cjs_add2  <- sampling(add2_mod, data = stan_data1, init = inits,
+cjs_add2  <- sampling(add2_mod, data = stan_data, init = inits,
                       pars = params2,
                       chains = nc, iter = ni, warmup = nb, thin = nt,
                       seed = 1, open_progress = FALSE)
@@ -65,7 +66,7 @@ print(cjs_add2, digits = 3, pars = c("phi_g1", "phi_g2", "p_g1", "p_g2",
 saveRDS(cjs_add2, here::here("BPA", "Ch.07", "gen_data", "add2.rds"))
 
 add_fixP_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add2_fixP.stan"))
-cjs_add2_fixP  <- sampling(add_fixP_mod, data = stan_data1, init = inits,
+cjs_add2_fixP  <- sampling(add_fixP_mod, data = stan_data, init = inits,
                       pars = params2,
                       chains = nc, iter = ni, warmup = nb, thin = nt,
                       seed = 1, open_progress = FALSE)

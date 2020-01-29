@@ -1,6 +1,6 @@
 // This models is derived from section 12.3 of "Stan Modeling Language
 // User's Guide and Reference Manual"
-// Identical to cjs_group_raneff.stan but with time-varying effects and betas treated as offsets from average
+// Identical to cjs_group_raneff.stan but with time-varying effects for phi and p
 
 functions {
   int first_capture(int[] y_i) {
@@ -14,8 +14,6 @@ functions {
     for (k_rev in 0:(size(y_i) - 1)) {
       // Compoud declaration was enabled in Stan 2.13
       int k = size(y_i) - k_rev;
-      //      int k;
-      //      k = size(y_i) - k_rev;
       if (y_i[k])
         return k;
     }
@@ -32,7 +30,6 @@ functions {
         // Compoud declaration was enabled in Stan 2.13
         int t_curr = n_occasions - t;
         int t_next = t_curr + 1;
-        
         chi[i, t_curr] = (1 - phi[i, t_curr])
                         + phi[i, t_curr] * (1 - p[i, t_next - 1]) * chi[i, t_next];
       }
@@ -62,11 +59,14 @@ transformed data {
 }
 
 parameters {
-  vector[g] beta;                       // Group-specific betas
-  real alpha;                           // Logit of mean survival
-  real<lower=0,upper=10> sigma;         // SD of logit of survival variability
-  vector[n_occ_minus_1] gamma_phi;      // Time effects for phi
-  real<lower=0,upper=1> mean_p;
+  vector[g] beta_phi;                       // Group-specific betas
+  real mean_beta_phi;                       // Logit of mean survival
+  real<lower=0,upper=10> sigma_phi;         // SD of logit of survival variability
+  vector[n_occ_minus_1] gamma_phi;      // Time effects for p
+  vector[g] beta_p;                       // Group-specific betas
+  real mean_beta_p;                       // Logit of mean det prob
+  real<lower=0,upper=10> sigma_p;         // SD of logit of det prob variability
+  vector[n_occ_minus_1] gamma_pp;      // Time effects for p
 }
 
 transformed parameters {
@@ -81,8 +81,9 @@ transformed parameters {
       p[i, t] = 0;
     }
     for (t in first[i]:n_occ_minus_1) {
-      phi[i, t] = inv_logit(alpha + beta[group[i]] + gamma_phi[t]);
-      p[i, t] = mean_p;
+      phi[i, t] = inv_logit(beta_phi[group[i]] + gamma_phi[t]);
+      // p[i, t] = mean_p;
+      p[i, t] = inv_logit(beta_p[group[i]] + gamma_pp[t]);
     }
   }
 
@@ -92,14 +93,15 @@ transformed parameters {
 model {
   // Priors
   // Uniform priors are implicitly defined.
-  //  phi_g ~ uniform(0, 1);
-  //  mean_p ~ uniform(0, 1);
-  //  sigma ~ uniform(0, 10);
   // In case a weakly informative prior is used
-  //  sigma ~ normal(5, 2.5);
-  beta ~ normal(0, sigma);
-  alpha ~ normal(0, sqrt(1000));
+  //  sigma_phi ~ normal(5, 2.5);
+  //  sigma_p ~ normal(5, 2.5);
+  beta_phi ~ normal(mean_beta_phi, sigma_phi);
+  mean_beta_phi ~ normal(0, sqrt(1000));
   gamma_phi ~ normal(0, 10);
+  beta_p ~ normal(mean_beta_p, sigma_p);
+  mean_beta_p ~ normal(0, sqrt(1000));
+  gamma_pp ~ normal(0, 10);
 
   // Likelihood
   for (i in 1:nind) {
@@ -114,15 +116,17 @@ model {
 }
 
 generated quantities {
-  real<lower=0,upper=1> mean_phi;
+  // real<lower=0,upper=1> mean_phi;
   // vector<lower=0,upper=1>[g] phi_g;     // Group-specific survival
   matrix<lower=0,upper=1>[g, n_occ_minus_1] phi_g;
+  matrix<lower=0,upper=1>[g, n_occ_minus_1] p_g;
 
-  mean_phi = inv_logit(alpha);
-  // phi_g = inv_logit(beta);
+  // mean_phi = inv_logit(mean_beta_phi);
+  // phi_g = inv_logit(beta_phi);
   for (gg in 1:g) {
     for (t in 1:n_occ_minus_1) {
-      phi_g[gg, t] = inv_logit(alpha + beta[gg] + gamma_phi[t]);
+      phi_g[gg, t] = inv_logit(beta_phi[gg] + gamma_phi[t]);
+      p_g[gg, t] = inv_logit(beta_p[gg] + gamma_pp[t]);
     }
   }
 }

@@ -11,6 +11,8 @@ re_fit <- readRDS(here::here("BPA", "Ch.07", "gen_data", "group_raneff.rds"))
 mix_fit <- readRDS(here::here("BPA", "Ch.07", "gen_data",
                               "group_raneff_temp_fixeff.rds"))
 
+print(fe_fit, digits = 3)
+
 # Helper function generate posterior intervals
 gen_int <- function(mcmc_est, parm, group) {
   mu_phi <- apply(mcmc_est, 2, mean)
