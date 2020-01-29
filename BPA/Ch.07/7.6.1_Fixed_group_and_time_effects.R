@@ -61,18 +61,25 @@ cjs_add2  <- sampling(add2_mod, data = stan_data, init = inits,
                       pars = params2,
                       chains = nc, iter = ni, warmup = nb, thin = nt,
                       seed = 1, open_progress = FALSE)
-print(cjs_add2, digits = 3, pars = c("phi_g1", "phi_g2", "p_g1", "p_g2",
-                                     "beta_p"))
 saveRDS(cjs_add2, here::here("BPA", "Ch.07", "gen_data", "add2.rds"))
+
+## As above but with p-fixed in last time step by group
+fix_p <- c(0.8, 0.9)
+stan_data$final_fix_p <- fix_p
+# params3 <- c("phi_g1", "phi_g2", "p_g1", "p_g2", "beta_phi", "beta_p", "p")
 
 add_fixP_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add2_fixP.stan"))
 cjs_add2_fixP  <- sampling(add_fixP_mod, data = stan_data, init = inits,
-                      pars = params2,
-                      chains = nc, iter = ni, warmup = nb, thin = nt,
-                      seed = 1, open_progress = FALSE)
-print(cjs_add2_fixP, digits = 3, pars = c("phi_g1", "phi_g2", "p_g1", "p_g2",
-                                          "beta_p"))
+                           pars = params2,
+                           chains = nc, iter = ni, warmup = nb, thin = nt,
+                           seed = 1, open_progress = FALSE)
 saveRDS(cjs_add2_fixP, here::here("BPA", "Ch.07", "gen_data", "add2_fixP.rds"))
+
+
+print(fe_fit, digits = 3, pars = c("phi_g2"))
+
+print(cjs_add2_fixP, digits = 3, pars = c("phi_g2"))
+
 
 
 # Extract phi estimates

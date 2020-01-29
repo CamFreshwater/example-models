@@ -94,3 +94,7 @@ cjs_groupRE_tempFE3  <- sampling(cjs_groupRE_tempFE_mod3, data = stan_data,
                                  chains = nc, iter = ni, warmup = nb, thin = nt,
                                  control = list(adapt_delta = 0.90),
                                  seed = 1, open_progress = FALSE)
+print(cjs_groupRE_tempFE3, digits = 3)
+saveRDS(cjs_groupRE_tempFE3, here::here("BPA", "Ch.07", "gen_data",
+                                       "group_raneff_temp_fixeff_p.rds"))
+
