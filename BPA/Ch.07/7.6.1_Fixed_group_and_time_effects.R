@@ -56,14 +56,30 @@ inits <- lapply(1:nc, function(i) {
        beta_phi = c(0, rnorm(1)),
        beta_p = c(0, rnorm(1)))})
 
-add2_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add2.stan"))
-cjs_add2  <- sampling(add2_mod, data = stan_data, init = inits,
+add2_modA <- stan_model(here::here("BPA", "Ch.07", "cjs_add2.stan"))
+cjs_add2  <- sampling(add2_modA, data = stan_data, init = inits,
                       pars = params2,
                       chains = nc, iter = ni, warmup = nb, thin = nt,
                       seed = 1, open_progress = FALSE)
 saveRDS(cjs_add2, here::here("BPA", "Ch.07", "gen_data", "add2.rds"))
 
-## As above but with p-fixed in last time step by group
+## As above but with no reference category
+params2 <- c("phi_g", "p_g", "beta_phi", "beta_p")
+
+inits <- lapply(1:nc, function(i) {
+  list(gamma_phi = rnorm(stan_data$n_occasions - 1),
+       gamma_pp = rnorm(stan_data$n_occasions - 1),
+       beta_phi = c(0, rnorm(1)),
+       beta_p = c(0, rnorm(1)))})
+
+add2_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add2_ver2.stan"))
+cjs_add2_noref  <- sampling(add2_mod, data = stan_data, init = inits[1],
+                      pars = params2,
+                      chains = 1, iter = 750, warmup = 250, thin = nt,
+                      seed = 1, open_progress = FALSE)
+
+
+## As add2 but with p-fixed in last time step by group
 fix_p <- c(0.8, 0.9)
 stan_data$final_fix_p <- fix_p
 # params3 <- c("phi_g1", "phi_g2", "p_g1", "p_g2", "beta_phi", "beta_p", "p")
