@@ -10,7 +10,7 @@ fe_fit <- readRDS(here::here("BPA", "Ch.07", "gen_data", "add2.rds"))
 mix_fit <- readRDS(here::here("BPA", "Ch.07", "gen_data",
                               "group_raneff_temp_fixeff_p.rds"))
 
-print(fe_fit, digits = 3, pars = c("beta_phi", "beta_p"))
+print(fe_fit, digits = 3, pars = c("beta_phi", "beta_p", "phi_g1"))
 print(mix_fit, digits = 3, pars = c("beta_phi", "beta_p"))
 
 

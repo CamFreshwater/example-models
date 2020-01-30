@@ -72,11 +72,13 @@ inits <- lapply(1:nc, function(i) {
        beta_phi = c(0, rnorm(1)),
        beta_p = c(0, rnorm(1)))})
 
-add2_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add2_ver2.stan"))
-cjs_add2_noref  <- sampling(add2_mod, data = stan_data, init = inits[1],
+add2_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add2_repar.stan"))
+cjs_add2_noref  <- sampling(add2_mod, data = stan_data, init = inits,
                       pars = params2,
-                      chains = 1, iter = 750, warmup = 250, thin = nt,
+                      chains = nc, iter = ni, warmup = nb, thin = nt,
                       seed = 1, open_progress = FALSE)
+print(cjs_add2_noref, digits = 3)
+# reparameterization successful
 
 
 ## As add2 but with p-fixed in last time step by group

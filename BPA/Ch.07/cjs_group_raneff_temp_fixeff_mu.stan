@@ -63,7 +63,7 @@ transformed data {
 
 parameters {
   vector[g] beta;                       // Group-specific betas
-  real alpha;                           // Logit of mean survival
+  real mu_beta;                          // Logit of mean survival
   real<lower=0,upper=10> sigma;         // SD of logit of survival variability
   vector[n_occ_minus_1] gamma_phi;      // Time effects for phi
   real<lower=0,upper=1> mean_p;
@@ -81,7 +81,7 @@ transformed parameters {
       p[i, t] = 0;
     }
     for (t in first[i]:n_occ_minus_1) {
-      phi[i, t] = inv_logit(alpha + beta[group[i]] + gamma_phi[t]);
+      phi[i, t] = inv_logit(mu_beta + beta[group[i]] + gamma_phi[t]);
       p[i, t] = mean_p;
     }
   }
@@ -98,7 +98,7 @@ model {
   // In case a weakly informative prior is used
   //  sigma ~ normal(5, 2.5);
   beta ~ normal(0, sigma);
-  alpha ~ normal(0, sqrt(1000));
+  mu_beta ~ normal(0, sqrt(1000));
   gamma_phi ~ normal(0, 10);
 
   // Likelihood
@@ -118,11 +118,10 @@ generated quantities {
   // vector<lower=0,upper=1>[g] phi_g;     // Group-specific survival
   matrix<lower=0,upper=1>[g, n_occ_minus_1] phi_g;
 
-  mean_phi = inv_logit(alpha);
-  // phi_g = inv_logit(beta);
+  mean_phi = inv_logit(mu_beta);
   for (gg in 1:g) {
     for (t in 1:n_occ_minus_1) {
-      phi_g[gg, t] = inv_logit(alpha + beta[gg] + gamma_phi[t]);
+      phi_g[gg, t] = inv_logit(mu_beta + beta[gg] + gamma_phi[t]);
     }
   }
 }
