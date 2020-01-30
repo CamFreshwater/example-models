@@ -98,3 +98,19 @@ print(cjs_groupRE_tempFE3, digits = 3)
 saveRDS(cjs_groupRE_tempFE3, here::here("BPA", "Ch.07", "gen_data",
                                        "group_raneff_temp_fixeff_p.rds"))
 
+
+# As above (random group and fixed time effects for p and phi), but with
+# covariance in hyperdistribution
+params5 <- c("p_g", "phi_g", "beta_phi", "beta_p", "sigma_group", "Rho")
+
+cjs_groupRE_tempFE_mod3 <- stan_model(
+here::here("BPA", "Ch.07", "cjs_group_raneff_temp_fixeff_covaryp.stan"))
+cjs_groupRE_tempFE3  <- sampling(cjs_groupRE_tempFE_mod3, data = stan_data,
+                                 init = inits2,
+                                 pars = params4,
+                                 chains = nc, iter = ni, warmup = nb, thin = nt,
+                                 control = list(adapt_delta = 0.90),
+                                 seed = 1, open_progress = FALSE)
+print(cjs_groupRE_tempFE3, digits = 3)
+saveRDS(cjs_groupRE_tempFE3, here::here("BPA", "Ch.07", "gen_data",
+                                        "group_raneff_temp_fixeff_p.rds"))
