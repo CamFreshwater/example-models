@@ -67,7 +67,8 @@ barplot(sort(gct, decreasing = TRUE), xlab="PT",
 # apparent bend after 4th PT
 
 # identify tensor product names based on number selected
-tp_keep <- which((pta[[3]]$pct * pta[[3]]$ssX / pta[[3]]$ssX[1]) %in% sort(gct, decreasing = TRUE)[1:4])
+tp_keep <- which((pta[[3]]$pct * pta[[3]]$ssX / pta[[3]]$ssX[1]) %in%
+                   sort(gct, decreasing = TRUE)[1:4])
 pta[[3]]$vsnam[tp_keep]
 
 # plot (mod refers dimensions, nb to the components)
