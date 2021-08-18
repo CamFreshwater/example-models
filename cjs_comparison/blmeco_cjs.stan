@@ -1,15 +1,17 @@
 // Stan Code for CJS Model w/ Random Effects from Bayesian Data
 // Analysis in Ecology Using Linear Models with R, BUGS, and Stan
+// Modified to match stan reference example
 
 data {
 	int<lower = 2> K; // capture events
 	int<lower = 0> I; // number of individuals
 	int<lower = 0, upper = 1> CH[I, K]; // CH[i,k]: individual i captured at K
-	int<lower = 0> ngroup; // number of families
+	int<lower = 0> ngroup; // number of groups
 	int<lower = 0, upper = ngroup> group[I];// index of group variable
 }
 
 transformed data {
+	// real beta1 = 0;      // Corner constraint
 	int<lower=0,upper=K+1> last[I]; // last[i]: ind i last capture
 	last = rep_array(0,I);
 	for (i in 1:I) {
@@ -22,9 +24,10 @@ transformed data {
 }
 
 parameters {
-	real a[K - 1]; // recapture-specific intercept of phi
-	real a1[ngroup]; // group effects for phi
+	//real a[K - 1];			// recapture-specific intercept of phi
     vector<lower=0,upper=1>[ngroup] p_g;    // Group-spec. recapture
+    vector<lower=0,upper=1>[ngroup] phi_g;    // Group-spec. surv
+	//real beta2; 			// difference in male/female survival
 }
 
 transformed parameters {
@@ -32,11 +35,16 @@ transformed parameters {
 	real<lower = 0, upper = 1> phi[I, K - 1]; // survival probability
 	real<lower = 0, upper = 1> chi[I, K + 1]; // probability that an ndividual  
 									   // is never recap. after its last cap.
+
+	//vector[ngroup] beta;
+	//beta[1] = beta1;
+  	//beta[2] = beta2;
+	
 	{
 		int k;
 		for(ii in 1:I) {
 			for(tt in 1:(K - 1)) {
-				phi[ii,tt] = inv_logit(a[tt] + a1[group[ii]]);
+				phi[ii,tt] = phi_g[group[ii]]; // inv_logit(a[tt] + beta[group[ii]]);
 			}
 		}
 		for(i in 1:I) {
@@ -61,8 +69,9 @@ transformed parameters {
 
 model {
 	// priors
-	a ~ normal(0, 10);
-	a1 ~ normal(0, 10);
+	// a ~ normal(0, 10);
+	// beta2 ~ normal(0, 10);
+	phi_g ~ uniform(0, 1);
 	p_g ~ uniform(0, 1);
 	
 	// likelihood

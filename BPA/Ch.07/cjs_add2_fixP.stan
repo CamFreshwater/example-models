@@ -45,6 +45,7 @@ data {
   int<lower=0,upper=1> y[nind, n_occasions];    // Capture-history
   int<lower=1> g;               // Number of groups
   int<lower=1,upper=g> group[nind];     // Groups
+  real<lower=0> final_fix_p;     // fixed values for final detection prob
   // real<lower=0,upper=1> final_fix_p[g];     // fixed values for det prob
 }
 
@@ -65,7 +66,7 @@ parameters {
   // real<lower=0,upper=1> mean_phi;    // Mean survival
   // real<lower=0,upper=1> mean_p;      // Mean recapture
   vector[n_occ_minus_1] gamma_phi;   // Time effects for phi
-  vector[n_occ_minus_1] gamma_pp;    // Time eff for p (gamma_p reserved)
+  vector[n_occ_minus_1 - 1] gamma_pp;    // Time eff for p (gamma_p reserved)
   real beta_phi2;                    // Prior for difference in male and
                                      // female survival
   real beta_p2;                      // Prior for difference in male and
@@ -92,12 +93,16 @@ transformed parameters {
     }
     for (t in first[i]:n_occ_minus_1) {
       phi[i, t] = inv_logit(beta_phi[group[i]] + gamma_phi[t]);
-      if (t == n_occ_minus_1) {
-         p[i, t] = 0.9; //final_fix_p[group[i]]; // fix high probability of detection at last stage
-      } else {
-        p[i, t] = inv_logit(beta_p[group[i]] + gamma_pp[t]);
-      }
+      // if (t == n_occ_minus_1) {
+      //  p[i, t] = 0.9; //final_fix_p[group[i]]; // fix high probability of detection at last stage
+      // } else {
+      //  p[i, t] = inv_logit(beta_p[group[i]] + gamma_pp[t]);
+      // }
     }
+    for (t in first[i]:(n_occ_minus_1 - 1)) {
+      p[i, t] = inv_logit(beta_p[group[i]] + gamma_pp[t]);
+    }
+    p[i, n_occ_minus_1] = final_fix_p;
   }
 
   chi = prob_uncaptured(nind, n_occasions, p, phi);
@@ -126,18 +131,12 @@ model {
 generated quantities {
   vector<lower=0,upper=1>[n_occ_minus_1] phi_g1;
   vector<lower=0,upper=1>[n_occ_minus_1] phi_g2;
-  vector<lower=0,upper=1>[n_occ_minus_1] p_g1;
-  vector<lower=0,upper=1>[n_occ_minus_1] p_g2;
+  vector<lower=0,upper=1>[n_occ_minus_1 - 1] p_g1;
+  vector<lower=0,upper=1>[n_occ_minus_1 - 1] p_g2;
 
   // inv_logit was vectorized in Stan 2.13
   phi_g1 = inv_logit(gamma_phi); // Back-transformed survival of males
   phi_g2 = inv_logit(gamma_phi + beta_phi[2]); // Back-transformed survival of females
   p_g1 = inv_logit(gamma_pp); // Back-transformed recap of males
   p_g2 = inv_logit(gamma_pp + beta_p[2]); // Back-transformed recap of females
-  /*
-  for (t in 1:n_occ_minus_1) {
-    phi_g1[t] = inv_logit(gamma_phi[t]);
-    phi_g2[t] = inv_logit(gamma_phi[t] + beta_phi[2]);
-  }
-  */
 }

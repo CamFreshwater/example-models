@@ -24,6 +24,26 @@ nb <- 250
 nc <- 4
 
 
+# Model 1 - blmeco
+blmeco_data <- stan_data
+names(blmeco_data) <- c("CH", "K", "ngroup", "group", "I", "df", "R")
+
+inits_blmeco <- lapply(1:nc, function(i) {
+  list(#a = rnorm(stan_data$n_occasions - 1),
+       #beta = c(0, rnorm(1)),
+       phi_g = runif(length(unique(stan_data$group)), 0, 1),
+       p_g = runif(length(unique(stan_data$group)), 0, 1))})
+
+blmeco_params <- c("phi_g", "p_g") #c("a", "beta", "p_g")
+blmeco_cjs_mod <- here::here("cjs_comparison", "blmeco_cjs.stan")
+blmeco_cjs  <- stan(blmeco_cjs_mod,
+                    data = blmeco_data, init = inits_blmeco[1],
+                    pars = blmeco_params,
+                    chains = 1, iter = 100, warmup = 25, thin = nt,
+                    seed = 1,
+                    open_progress = FALSE)
+
+
 # Model 2 - stan reference
 inits_stan <- lapply(1:nc, function(i) {
   list(gamma = rnorm(stan_data$n_occasions - 1),
@@ -34,25 +54,19 @@ stan_params <- c("phi_g1", "phi_g2", "p_g", "beta")
 
 stan_cjs_mod <- here::here("cjs_comparison", "stan_ref_cjs.stan")
 stan_cjs  <- stan(stan_cjs_mod,
-                  data = stan_data, init = inits_stan, pars = stan_params,
-                  chains = nc, iter = ni, warmup = nb, thin = nt,
+                  data = stan_data, init = inits_stan[1], pars = stan_params,
+                  # chains = nc, iter = ni, warmup = nb, thin = nt,
+                  chains = 1, iter = 100, warmup = 25, thin = nt,
                   seed = 1,
                   open_progress = FALSE)
 
 
-# Model 1 - blmeco
-blmeco_data <- stan_data
-names(blmeco_data) <- c("CH", "K", "ngroup", "group", "I", "df", "R")
 
-inits_blmeco <- lapply(1:nc, function(i) {
-  list(a = rnorm(stan_data$n_occasions - 1),
-       a1 = rnorm(2),
-       p_g = runif(length(unique(stan_data$group)), 0, 1))})
+#### Swallows example
 
-blmeco_params <- c("a", "a1", "p_g")
-blmeco_cjs_mod <- here::here("cjs_comparison", "blmeco_cjs.stan")
-blmeco_cjs  <- stan(blmeco_cjs_mod,
-                    data = blmeco_data, init = inits_blmeco[1], pars = blmeco_params,
-                    chains = 1, iter = 100, warmup = 25, thin = nt,
-                    seed = 1,
-                    open_progress = FALSE)
+data("survival_swallows")
+dat <- survival_swallows
+
+blmeco_cjs_mod1 <- here::here("cjs_comparison", "blmeco_cjs_original.stan")
+mod <- stan(blmeco_cjs_mod1, data = dat, chains = 1, iter = 1000)
+

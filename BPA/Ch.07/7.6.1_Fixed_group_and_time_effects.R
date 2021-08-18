@@ -63,13 +63,14 @@ cjs_add2  <- sampling(add2_modA, data = stan_data, init = inits,
                       seed = 1, open_progress = FALSE)
 saveRDS(cjs_add2, here::here("BPA", "Ch.07", "gen_data", "add2.rds"))
 
+
 ## As above but with no reference category (i.e. outputs are matrix rather than
 # vector)
 params2 <- c("phi_g", "p_g", "beta_phi", "beta_p")
 
 inits <- lapply(1:nc, function(i) {
   list(gamma_phi = rnorm(stan_data$n_occasions - 1),
-       gamma_pp = rnorm(stan_data$n_occasions - 1),
+       gamma_pp = rnorm(stan_data$n_occasions - 2),
        beta_phi = c(0, rnorm(1)),
        beta_p = c(0, rnorm(1)))})
 
@@ -84,13 +85,13 @@ print(cjs_add2_noref, digits = 3)
 
 ## As add2 but with p-fixed in last time step by group
 # fix_p <- c(0.8, 0.9)
-# stan_data$final_fix_p <- fix_p
+stan_data$final_fix_p <- 0.9
 params3 <- c("phi_g1", "phi_g2", "p_g1", "p_g2", "beta_phi", "beta_p")
 
 add_fixP_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add2_fixP.stan"))
 cjs_add2_fixP  <- sampling(add_fixP_mod, data = stan_data, init = inits[1],
                            pars = params3,
-                           chains = 1, iter = 250, warmup = 50, thin = nt,
+                           chains = 1, iter = 200, warmup = 50, thin = nt,
                            seed = 1, open_progress = FALSE)
 saveRDS(cjs_add2_fixP, here::here("BPA", "Ch.07", "gen_data", "add2_fixP.rds"))
 
@@ -121,10 +122,10 @@ ggplot(plot_dat, aes(x = as.factor(group), y = mu)) +
   facet_wrap(~as.factor(stage))
 
 
-phi1b <- rstan::extract(cjs_add2_fixP)$p_g1
-dat1b <- gen_int(phi1b, parm = "phi", group = "1")
-phi2b <- rstan::extract(cjs_add2_fixP)$p_g2
-dat2b <- gen_int(phi2b, parm = "phi", group = "2")
+p1b <- rstan::extract(cjs_add2_fixP)$p_g1
+dat1b <- gen_int(p1b, parm = "p", group = "1")
+p2b <- rstan::extract(cjs_add2_fixP)$p_g2
+dat2b <- gen_int(p2b, parm = "p", group = "2")
 plot_datb <- rbind(dat1b, dat2b)
 
 ggplot(plot_datb, aes(x = as.factor(group), y = mu)) +
