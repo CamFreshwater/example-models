@@ -20,9 +20,9 @@ stan_data <- read_rdump(here::here("BPA", "Ch.07", "cjs_add.data.R"))
 params <- c("phi_g1", "phi_g2", "p_g", "beta")
 
 ## MCMC settings
-ni <- 3000
+ni <- 1000
 nt <- 1
-nb <- 1500
+nb <- 250
 nc <- 4
 
 ## Initial values
@@ -63,7 +63,8 @@ cjs_add2  <- sampling(add2_modA, data = stan_data, init = inits,
                       seed = 1, open_progress = FALSE)
 saveRDS(cjs_add2, here::here("BPA", "Ch.07", "gen_data", "add2.rds"))
 
-## As above but with no reference category
+## As above but with no reference category (i.e. outputs are matrix rather than
+# vector)
 params2 <- c("phi_g", "p_g", "beta_phi", "beta_p")
 
 inits <- lapply(1:nc, function(i) {
@@ -82,21 +83,17 @@ print(cjs_add2_noref, digits = 3)
 
 
 ## As add2 but with p-fixed in last time step by group
-fix_p <- c(0.8, 0.9)
-stan_data$final_fix_p <- fix_p
-# params3 <- c("phi_g1", "phi_g2", "p_g1", "p_g2", "beta_phi", "beta_p", "p")
+# fix_p <- c(0.8, 0.9)
+# stan_data$final_fix_p <- fix_p
+params3 <- c("phi_g1", "phi_g2", "p_g1", "p_g2", "beta_phi", "beta_p")
 
 add_fixP_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add2_fixP.stan"))
-cjs_add2_fixP  <- sampling(add_fixP_mod, data = stan_data, init = inits,
-                           pars = params2,
-                           chains = nc, iter = ni, warmup = nb, thin = nt,
+cjs_add2_fixP  <- sampling(add_fixP_mod, data = stan_data, init = inits[1],
+                           pars = params3,
+                           chains = 1, iter = 250, warmup = 50, thin = nt,
                            seed = 1, open_progress = FALSE)
 saveRDS(cjs_add2_fixP, here::here("BPA", "Ch.07", "gen_data", "add2_fixP.rds"))
 
-
-print(fe_fit, digits = 3, pars = c("phi_g2"))
-
-print(cjs_add2_fixP, digits = 3, pars = c("phi_g2"))
 
 
 
@@ -123,12 +120,29 @@ ggplot(plot_dat, aes(x = as.factor(group), y = mu)) +
   geom_pointrange(aes(ymin = low, ymax = high)) +
   facet_wrap(~as.factor(stage))
 
-phi1b <- rstan::extract(cjs_add2_fixP)$phi_g1
+
+phi1b <- rstan::extract(cjs_add2_fixP)$p_g1
 dat1b <- gen_int(phi1b, parm = "phi", group = "1")
-phi2b <- rstan::extract(cjs_add2_fixP)$phi_g2
+phi2b <- rstan::extract(cjs_add2_fixP)$p_g2
 dat2b <- gen_int(phi2b, parm = "phi", group = "2")
 plot_datb <- rbind(dat1b, dat2b)
 
 ggplot(plot_datb, aes(x = as.factor(group), y = mu)) +
   geom_pointrange(aes(ymin = low, ymax = high)) +
   facet_wrap(~as.factor(stage))
+
+
+
+phi1b <- rstan::extract(cjs_add)$phi_g1
+dat1b <- gen_int(phi1b, parm = "phi", group = "1")
+phi2b <- rstan::extract(cjs_add)$phi_g2
+dat2b <- gen_int(phi2b, parm = "phi", group = "2")
+plot_datb <- rbind(dat1b, dat2b)
+
+ggplot(plot_datb, aes(x = as.factor(group), y = mu)) +
+  geom_pointrange(aes(ymin = low, ymax = high)) +
+  facet_wrap(~as.factor(stage))
+
+p_g <- rstan::extract(cjs_add)$p_g
+
+dum <- stan_data$y

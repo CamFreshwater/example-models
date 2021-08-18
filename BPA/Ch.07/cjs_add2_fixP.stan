@@ -45,7 +45,7 @@ data {
   int<lower=0,upper=1> y[nind, n_occasions];    // Capture-history
   int<lower=1> g;               // Number of groups
   int<lower=1,upper=g> group[nind];     // Groups
-  real<lower=0,upper=1> final_fix_p[g];     // fixed values for det prob
+  // real<lower=0,upper=1> final_fix_p[g];     // fixed values for det prob
 }
 
 transformed data {
@@ -62,8 +62,8 @@ transformed data {
 }
 
 parameters {
-  real<lower=0,upper=1> mean_phi;    // Mean survival
-  real<lower=0,upper=1> mean_p;      // Mean recapture
+  // real<lower=0,upper=1> mean_phi;    // Mean survival
+  // real<lower=0,upper=1> mean_p;      // Mean recapture
   vector[n_occ_minus_1] gamma_phi;   // Time effects for phi
   vector[n_occ_minus_1] gamma_pp;    // Time eff for p (gamma_p reserved)
   real beta_phi2;                    // Prior for difference in male and
@@ -93,7 +93,7 @@ transformed parameters {
     for (t in first[i]:n_occ_minus_1) {
       phi[i, t] = inv_logit(beta_phi[group[i]] + gamma_phi[t]);
       if (t == n_occ_minus_1) {
-        p[i, t] = final_fix_p[group[i]]; // fix high probability of detection at last stage
+         p[i, t] = 0.9; //final_fix_p[group[i]]; // fix high probability of detection at last stage
       } else {
         p[i, t] = inv_logit(beta_p[group[i]] + gamma_pp[t]);
       }

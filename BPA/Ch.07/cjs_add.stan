@@ -71,8 +71,8 @@ transformed data {
 }
 
 parameters {
-  real<lower=0,upper=1> mean_phi;    // Mean survival
-  real<lower=0,upper=1> mean_p;      // Mean recapture
+  // real<lower=0,upper=1> mean_phi;    // Mean survival
+  // real<lower=0,upper=1> mean_p;      // Mean recapture
   vector[n_occ_minus_1] gamma;       // Time effects
   vector<lower=0,upper=1>[g] p_g;    // Group-spec. recapture
   real beta2;                        // Prior for difference in male and
