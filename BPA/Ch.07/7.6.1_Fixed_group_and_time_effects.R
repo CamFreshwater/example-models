@@ -48,7 +48,7 @@ print(cjs_add_trim, digits = 3)
 
 
 # Adjusted model with time-varying detection probabilities
-params2 <- c("phi_g1", "phi_g2", "p_g1", "p_g2", "beta_phi", "beta_p")
+params2 <- c("phi_g1", "phi_g2", "p_g1", "p_g2", "beta_phi", "beta_p", "p")
 
 inits <- lapply(1:nc, function(i) {
   list(gamma_phi = rnorm(stan_data$n_occasions - 1),
@@ -66,36 +66,45 @@ saveRDS(cjs_add2, here::here("BPA", "Ch.07", "gen_data", "add2.rds"))
 
 ## As above but with no reference category (i.e. outputs are matrix rather than
 # vector)
-params2 <- c("phi_g", "p_g", "beta_phi", "beta_p")
+# params2 <- c("phi_g", "p_g", "beta_phi", "beta_p")
+#
 
-inits <- lapply(1:nc, function(i) {
-  list(gamma_phi = rnorm(stan_data$n_occasions - 1),
-       gamma_pp = rnorm(stan_data$n_occasions - 2),
-       beta_phi = c(0, rnorm(1)),
-       beta_p = c(0, rnorm(1)))})
-
-add2_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add2_repar.stan"))
-cjs_add2_noref  <- sampling(add2_mod, data = stan_data, init = inits,
-                      pars = params2,
-                      chains = nc, iter = ni, warmup = nb, thin = nt,
-                      seed = 1, open_progress = FALSE)
-print(cjs_add2_noref, digits = 3)
+#
+# add2_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add2_repar.stan"))
+# cjs_add2_noref  <- sampling(add2_mod, data = stan_data, init = inits,
+#                       pars = params2,
+#                       chains = nc, iter = ni, warmup = nb, thin = nt,
+#                       seed = 1, open_progress = FALSE)
+# print(cjs_add2_noref, digits = 3)
 # reparameterization successful
 
 
 ## As add2 but with p-fixed in last time step by group
 # fix_p <- c(0.8, 0.9)
 stan_data$final_fix_p <- 0.9
-params3 <- c("phi_g1", "phi_g2", "p_g1", "p_g2", "beta_phi", "beta_p")
+params3 <- c("phi_g1", "phi_g2", "p_g1", "p_g2", "beta_phi", "beta_p", "p")
+
+inits_fixed <- lapply(1:nc, function(i) {
+  list(gamma_phi = rnorm(stan_data$n_occasions - 1),
+       gamma_pp = rnorm(stan_data$n_occasions - 2),
+       beta_phi = c(0, rnorm(1)),
+       beta_p = c(0, rnorm(1)))})
 
 add_fixP_mod <- stan_model(here::here("BPA", "Ch.07", "cjs_add2_fixP.stan"))
-cjs_add2_fixP  <- sampling(add_fixP_mod, data = stan_data, init = inits[1],
+cjs_add2_fixP  <- sampling(add_fixP_mod, data = stan_data, init = inits_fixed,
                            pars = params3,
-                           chains = 1, iter = 200, warmup = 50, thin = nt,
-                           seed = 1, open_progress = FALSE)
+                           chains = nc, iter = ni, warmup = nb, thin = nt,
+                           seed = 1, open_progress = FALSE,
+                           control = list(adapt_delta = 0.95))
 saveRDS(cjs_add2_fixP, here::here("BPA", "Ch.07", "gen_data", "add2_fixP.rds"))
 
 
+# Compare models with and without final p fixed
+p_post <- rstan::extract(cjs_add2)$p
+p_post_fixed <- rstan::extract(cjs_add2_fixP)$p
+
+mean(p_post[,,11])
+mean(p_post_fixed[,,11])
 
 
 # Extract phi estimates
@@ -121,22 +130,32 @@ ggplot(plot_dat, aes(x = as.factor(group), y = mu)) +
   geom_pointrange(aes(ymin = low, ymax = high)) +
   facet_wrap(~as.factor(stage))
 
+p1 <- rstan::extract(cjs_add2)$p_g1
+dat1 <- gen_int(p1b, parm = "p", group = "1")
+p2 <- rstan::extract(cjs_add2)$p_g2
+dat2 <- gen_int(p2b, parm = "p", group = "2")
+plot_dat_p <- rbind(dat1, dat2)
+
+ggplot(plot_dat_p, aes(x = as.factor(group), y = mu)) +
+  geom_pointrange(aes(ymin = low, ymax = high)) +
+  facet_wrap(~as.factor(stage))
+
 
 p1b <- rstan::extract(cjs_add2_fixP)$p_g1
 dat1b <- gen_int(p1b, parm = "p", group = "1")
 p2b <- rstan::extract(cjs_add2_fixP)$p_g2
 dat2b <- gen_int(p2b, parm = "p", group = "2")
-plot_datb <- rbind(dat1b, dat2b)
+plot_datb_p <- rbind(dat1b, dat2b)
 
-ggplot(plot_datb, aes(x = as.factor(group), y = mu)) +
+ggplot(plot_datb_p, aes(x = as.factor(group), y = mu)) +
   geom_pointrange(aes(ymin = low, ymax = high)) +
   facet_wrap(~as.factor(stage))
 
 
 
-phi1b <- rstan::extract(cjs_add)$phi_g1
+phi1b <- rstan::extract(cjs_add2_fixP)$phi_g1
 dat1b <- gen_int(phi1b, parm = "phi", group = "1")
-phi2b <- rstan::extract(cjs_add)$phi_g2
+phi2b <- rstan::extract(cjs_add2_fixP)$phi_g2
 dat2b <- gen_int(phi2b, parm = "phi", group = "2")
 plot_datb <- rbind(dat1b, dat2b)
 
