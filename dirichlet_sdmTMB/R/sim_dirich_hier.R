@@ -98,7 +98,6 @@ for (i in 1:n_trials) {
 
 
 compile(here::here("dirichlet_sdmTMB", "src", "dirichlet_randInt.cpp"))
-
 dyn.load(dynlib(here::here("dirichlet_sdmTMB", "src", "dirichlet_randInt")))
 
 #fit models with all data
