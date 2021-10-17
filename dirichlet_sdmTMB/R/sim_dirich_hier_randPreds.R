@@ -105,16 +105,21 @@ for (i in 1:n_trials) {
 }
 sims_in <- sims[[1]]
 
-## look at raw data
-glimpse(sims[[1]]$full_data)
-dum <- sims[[1]]$full_data %>%
-  pivot_longer(cols = `1`:`4`, names_to = "group", values_to = "count")
-
-ggplot(dum) +
-  geom_bar(aes(x = strata_f, y = count, fill = group),
-           stat = "identity") +
-  ggsidekick::theme_sleek() +
-  facet_wrap(~site_f)
+## look at raw data (NEEDS TO BE COMPLETED)
+# glimpse(sims[[1]]$full_data)
+# dum <- sims[[1]]$full_data %>%
+#   pivot_longer(cols = `1`:`4`, names_to = "group", values_to = "count") %>%
+#   group_by(strata_f, site_f, N) %>%
+#   summarize(obs_ppn = sum(count) / N)
+# mean_dum <- dum %>%
+#   group_by(strata_f, site_f, group) %>%
+#   summarize(mean_obs_ppn = mean(obs_ppn))
+#
+# ggplot(dum) +
+#   geom_bar(aes(x = strata_f, y = count, fill = group),
+#            stat = "identity") +
+#   ggsidekick::theme_sleek() +
+#   facet_wrap(~site_f)
 
 
 # pred_eff <- pred_cov %*% beta0
@@ -146,7 +151,7 @@ fit_list_hier <- map(sims, function(sims_in) {
   # variables for estimating random effect predictions
   n_rfac <- length(unique(rfac))
   pred_dat_re <- do.call(rbind, replicate(5, pred_cov, simplify = FALSE))
-  re_preds <- rep(site_seq, each = nrow(pred_cov))
+  re_preds <- rep(seq(0, max(rfac), by = 1), each = nrow(pred_cov))
 
   #initial parameter values
   beta_in <- matrix(rnorm((ncol(X)) * J), ncol(X), J)
@@ -178,7 +183,11 @@ fit_list_hier <- map(sims, function(sims_in) {
   sdr <- sdreport(obj)
   ssdr <- summary(sdr)
 
-  re_preds_out <- ssdr[rownames(ssdr) %in% "pred_eff_re", ]
+  re_preds_out <- ssdr[rownames(ssdr) %in% "pred_pi_prop", ]
+  re_preds_dat <- data.frame(pred_ppn = re_preds_out[, "Estimate"]) %>%
+    cbind(., do.call(rbind, replicate(J, pred_dat_re, simplify = FALSE))) %>%
+    mutate(site = rep(re_preds, times = J),
+           group = rep(seq(1, J, by = 1), each = length(re_preds)))
 
 
   fix_eff <- data.frame(
