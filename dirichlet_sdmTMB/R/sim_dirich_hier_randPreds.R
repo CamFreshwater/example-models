@@ -103,7 +103,7 @@ sims <- vector(mode = "list", length = n_trials)
 for (i in 1:n_trials) {
   sims[[i]] <- f_sim(trial = i)
 }
-
+sims_in <- sims[[1]]
 
 ## look at raw data
 glimpse(sims[[1]]$full_data)
@@ -159,14 +159,15 @@ fit_list_hier <- map(sims, function(sims_in) {
   obj <- MakeADFun(
     data = list(fx_cov = X,
                 y_obs = Y_in,
-                pred_cov = pred_cov,
+                pred_cov = pred_dat_re,
                 rfac = rfac,
                 n_rfac = n_rfac,
                 pred_factor2k_i = re_preds,
-                # n_re_preds = length(re_preds),
+                n_levels = length(re_preds),
                 re_predictions = 1
     ),
     parameters = list(z_ints = beta_in,
+                      z_rfac = rand_int_in,
                       log_sigma_rfac = 0
     ),
     random = c("z_rfac"),
@@ -178,6 +179,7 @@ fit_list_hier <- map(sims, function(sims_in) {
   ssdr <- summary(sdr)
 
   re_preds_out <- ssdr[rownames(ssdr) %in% "pred_eff_re", ]
+
 
   fix_eff <- data.frame(
     par = "beta",

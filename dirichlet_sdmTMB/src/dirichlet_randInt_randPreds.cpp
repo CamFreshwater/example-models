@@ -9,7 +9,7 @@ Type objective_function<Type>::operator() ()
   DATA_INTEGER(n_rfac);  // number of random factor levels
   DATA_MATRIX(pred_cov);    // model matrix for predictions
   DATA_IVECTOR(pred_factor2k_i); // vector of predicted random factor levels
-  // DATA_INTEGER(n_re_preds);  // length of predictions
+  DATA_INTEGER(n_levels);  // length of predictions
   // conditionals
   DATA_INTEGER(re_predictions); // should predictions include REs or not
 
@@ -21,7 +21,7 @@ Type objective_function<Type>::operator() ()
   // The dimensions of data
   int n_obs = y_obs.rows();         // number of observations
   int n_cat = y_obs.cols();         // number of categories
-  int n_levels = pred_cov.rows();   // number of covariates to make predictions on
+  // int n_levels = pred_cov.rows();   // number of covariates to make predictions on
 
   // Matrix for intermediate objects
   matrix<Type> total_eff(n_obs, n_cat); // matrix of combined fixed/random eff
