@@ -46,7 +46,6 @@ pred_dat_long <- expand.grid(strata_f = pred_dat$strata_f,
                              site = site_seq)
 
 
-
 # function to simulate dirichlet data based on parameters and matrix
 f_sim <- function(trial = 1) {
 
@@ -62,7 +61,7 @@ f_sim <- function(trial = 1) {
   # reparametrization for data generation
   Gamma = exp(fix_eff + dat2$site_mean) #fixed effects
   Gamma_plus = apply(Gamma, 1, sum) #sum of fixed_effects
-  theta = 1/(Gamma_plus + 1)
+  theta = 1 / (Gamma_plus + 1)
   pi = apply(Gamma, 2, function(x) {x / theta})
 
   # Simulate the responses Y from package 'dirmult'

@@ -19,8 +19,8 @@ site_dat <- data.frame(site = seq(1, n_sites, 1),
                                          n = n_sites))
 
 # fixed covariate data
-J <- 4 #n categories (e.g. stocks)
-P <- 3 #n categorical fixed effects (or covariates - 1 if some continuous)
+J <- 3 #n categories (e.g. stocks)
+P <- 2 #n categorical fixed effects (or covariates - 1 if some continuous)
 # n <- 50 #n observations (e.g. total sampling events)
 N <- sample(c(5:20), n, replace = TRUE) #sample size per observation
 
