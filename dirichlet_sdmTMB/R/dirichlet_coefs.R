@@ -26,10 +26,10 @@ dat <- data.frame(strata = sample(1:P, n, replace = T)) %>%
 
 # fixed effects
 X <- model.matrix(~strata_f + 0, dat)
-# matrix of coefficients has fixed covariates (rows) and categories (cols)
+# generate matrix of coefficients has fixed covariates (rows) and
+# categories (cols)
 beta0 <- matrix(rnorm((ncol(X)) * J), ncol(X), J)
 
-# simulate initial beta matrix to generate fixed effects
 fix_eff <- X %*% beta0
 colnames(fix_eff) <- paste("beta_j", seq(1, J, by = 1), sep = "")
 
@@ -46,10 +46,7 @@ theta = 1 / (Gamma_plus + 1)
 pi = apply(Gamma, 2, function(x) {x / theta})
 
 pi_plus <- apply(pi, 1, sum)
-pred_pi <- matrix(NA, nrow = nrow(pi), ncol = ncol(pi))
-for (i in 1:nrow(pred_pi)) {
-  pred_pi[i, ] <- pi[i, ] / pi_plus[i]
-}
+pred_pi <- pi / pi_plus
 
 
 # Gamma and pi vary among random intercepts
