@@ -12,7 +12,7 @@ set.seed(42)
 # random intercepts for groups (e.g. sites)
 n_sites <- 5
 n_obs_per_site <- 100
-sd_site <- 0.5
+sd_site <- 0.3
 n <- n_sites * n_obs_per_site
 site_dat <- data.frame(site = seq(1, n_sites, 1),
                        site_mean = rnorm(mean = 0, sd = sd_site,
@@ -22,7 +22,7 @@ site_dat <- data.frame(site = seq(1, n_sites, 1),
 J <- 3 #n categories (e.g. stocks)
 P <- 2 #n categorical fixed effects (or covariates - 1 if some continuous)
 # n <- 50 #n observations (e.g. total sampling events)
-N <- sample(c(5:20), n, replace = TRUE) #sample size per observation
+N <- sample(c(30:250), n, replace = TRUE) #sample size per observation
 
 # input data frame and design matrix
 dat <- data.frame(strata = sample(1:P, n, replace = T)) %>%
@@ -56,8 +56,15 @@ f_sim <- function(trial = 1) {
   # reparametrization for data generation
   Gamma = exp(fix_eff + dat2$site_mean) #fixed effects
   Gamma_plus = apply(Gamma, 1, sum) #sum of fixed_effects
-  theta = 1/(Gamma_plus + 1)
+  theta = 1 / (Gamma_plus + 1)
   pi = apply(Gamma, 2, function(x) {x / theta})
+
+  # test test
+  pi_plus <- apply(pi, 1, sum)
+  pred_pi <- matrix(NA, nrow = nrow(pi), ncol = ncol(pi))
+  for (i in 1:nrow(pred_pi)) {
+    pred_pi[i, ] <- pi[i, ] / pi_plus[i]
+  }
 
   # Simulate the responses Y from package 'dirmult'
   # set.seed(123)
@@ -87,12 +94,12 @@ f_sim <- function(trial = 1) {
   return(list("trial" = trial, "obs" = Y, "noisey_obs" = Y2,
               "fixed_fac" = dat3$strata_f,
               "rand_mean" = site_dat$site_mean, "rand_fac" = dat3$site_f,
-              "full_data" = dat3, "fixed_ppns" = pi
+              "full_data" = dat3, "fixed_ppns" = pi, "pred_ppns" = pred_pi
   ))
 }
 
 # simulate
-n_trials <- 20
+n_trials <- 10
 sims <- vector(mode = "list", length = n_trials)
 for (i in 1:n_trials) {
   sims[[i]] <- f_sim(trial = i)
@@ -100,17 +107,17 @@ for (i in 1:n_trials) {
 
 
 ## look at raw data
-glimpse(sims[[1]]$full_data)
+glimpse(sims[[2]]$full_data)
 dum <- sims[[1]]$full_data %>%
-  pivot_longer(cols = `1`:`4`, names_to = "group", values_to = "count")
+  pivot_longer(cols = `1`:`3`, names_to = "group", values_to = "count")
 
-ggplot(dum) +
-  geom_bar(aes(x = strata_f, y = count, fill = group),
-           stat = "identity") +
+dum %>%
+  group_by(strata_f, site_f, group) %>%
+  summarize(ppn_obs = count / N) %>%
+  ggplot(., aes(x = strata_f, y = ppn_obs, fill = group)) +
+  geom_boxplot() +
   ggsidekick::theme_sleek() +
   facet_wrap(~site_f)
-
-
 
 # compile models
 compile(here::here("dirichlet_sdmTMB", "src", "dirichlet_randInt.cpp"))
@@ -138,7 +145,7 @@ fit_list_hier <- map(sims, function(sims_in) {
     ),
     parameters = list(z_ints = beta_in,
                       z_rfac = rand_int_in,
-                      log_sigma_rfac = 0
+                      log_sigma_rfac = 0.1
     ),
     random = c("z_rfac"),
     # DLL = "dirichlet_fixInt"
@@ -186,7 +193,7 @@ fit_list_hier_noisey <- map(sims, function(sims_in) {
 
   #initial parameter values
   beta_in <- matrix(rnorm((ncol(X)) * J), ncol(X), J)
-  rand_int_in <- rep(0, times = length(unique(rfac)))
+  rand_int_in <- rnorm(length(unique(rfac)), 0, 1) #rep(0, times = length(unique(rfac)))
 
   obj <- MakeADFun(
     data = list(fx_cov = X,
@@ -197,7 +204,7 @@ fit_list_hier_noisey <- map(sims, function(sims_in) {
     ),
     parameters = list(z_ints = beta_in,
                       z_rfac = rand_int_in,
-                      log_sigma_rfac = 0
+                      log_sigma_rfac = 0.1
     ),
     random = c("z_rfac"),
     # DLL = "dirichlet_fixInt"
@@ -261,10 +268,10 @@ par_est_box <- ggplot(coef_dat_hier1) +
   ggsidekick::theme_sleek() +
   facet_grid(data_type~par, scales = "free")
 
-par_rmse_box <- ggplot(coef_dat_hier1) +
-  geom_boxplot(aes(x = as.factor(par_n), y = rmse)) +
-  ggsidekick::theme_sleek() +
-  facet_wrap(~par, scales = "free")
+# par_rmse_box <- ggplot(coef_dat_hier1) +
+#   geom_boxplot(aes(x = as.factor(par_n), y = rmse)) +
+#   ggsidekick::theme_sleek() +
+#   facet_wrap(~par, scales = "free")
 
 pdf(here::here("figs", "hier_dirich_performance.pdf"))
 par_est_box
