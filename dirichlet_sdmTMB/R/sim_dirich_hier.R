@@ -7,22 +7,26 @@ library(TMB)
 library(tidyverse)
 library(DirichletReg)
 
-set.seed(42)
 
-# random intercepts for groups (e.g. sites)
-n_sites <- 5
-n_obs_per_site <- 100
-sd_site <- 0.3
-n <- n_sites * n_obs_per_site
-site_dat <- data.frame(site = seq(1, n_sites, 1),
-                       site_mean = rnorm(mean = 0, sd = sd_site,
-                                         n = n_sites))
+
+set.seed(42)
 
 # fixed covariate data
 J <- 3 #n categories (e.g. stocks)
 P <- 2 #n categorical fixed effects (or covariates - 1 if some continuous)
 # n <- 50 #n observations (e.g. total sampling events)
 N <- sample(c(30:250), n, replace = TRUE) #sample size per observation
+
+
+# random intercepts for groups (e.g. sites)
+n_sites <- 5
+n_obs_per_site <- 100
+sd_site <- 0.2
+n <- n_sites * n_obs_per_site
+site_dat <- data.frame(site = seq(1, n_sites, 1),
+                       site_mean = rnorm(mean = 0, sd = sd_site,
+                                         n = n_sites))
+
 
 # input data frame and design matrix
 dat <- data.frame(strata = sample(1:P, n, replace = T)) %>%
@@ -40,6 +44,7 @@ pred_dat <- dat %>%
   select(strata_f) %>%
   distinct()
 pred_cov <- model.matrix(~strata_f + 0, pred_dat)
+
 
 # function to simulate dirichlet data based on parameters and matrix
 f_sim <- function(trial = 1) {
@@ -107,7 +112,7 @@ for (i in 1:n_trials) {
 
 
 ## look at raw data
-glimpse(sims[[2]]$full_data)
+# glimpse(sims[[2]]$full_data)
 dum <- sims[[1]]$full_data %>%
   pivot_longer(cols = `1`:`3`, names_to = "group", values_to = "count")
 
@@ -118,6 +123,10 @@ dum %>%
   geom_boxplot() +
   ggsidekick::theme_sleek() +
   facet_wrap(~site_f)
+
+map(sims, function(x) list(unique(x$fixed_ppns),
+                           unique(x$pred_ppns)))
+
 
 # compile models
 compile(here::here("dirichlet_sdmTMB", "src", "dirichlet_randInt.cpp"))
@@ -145,7 +154,7 @@ fit_list_hier <- map(sims, function(sims_in) {
     ),
     parameters = list(z_ints = beta_in,
                       z_rfac = rand_int_in,
-                      log_sigma_rfac = 0.1
+                      log_sigma_rfac = rnorm(1, log(sd_site), 0.5)
     ),
     random = c("z_rfac"),
     # DLL = "dirichlet_fixInt"
@@ -176,18 +185,14 @@ fit_list_hier <- map(sims, function(sims_in) {
   # list(pred_eff = dum, ssdr = ssdr)
 })
 
-
 saveRDS(fit_list_hier, here::here("dirichlet_sdmTMB", "data", "hier_dir_sim_fits.RDS"))
 fit_list_hier <- readRDS(here::here("dirichlet_sdmTMB", "data", "hier_dir_sim_fits.RDS"))
 
-map(sims, function(x) {
-  head(x$noisey_obs)
-})
 
 
 # as above but with noisy data
 fit_list_hier_noisey <- map(sims, function(sims_in) {
-  Y_in <- sims_in$noisey_obs #+ runif(length(sims_in$obs), 0, 1)#round(sims_in$obs, 0)
+  Y_in <- sims_in$noisey_obs
   rfac <- as.numeric(sims_in$rand_fac) - 1 #subtract 1 for indexing in c++
   n_rfac <- length(unique(rfac))
 
@@ -262,7 +267,7 @@ coef_dat_hier2 <- fit_list_hier_noisey %>%
 
 coef_dat_hier <- rbind(coef_dat_hier1, coef_dat_hier2)
 
-par_est_box <- ggplot(coef_dat_hier1) +
+ggplot(coef_dat_hier) +
   geom_boxplot(aes(x = as.factor(par_n), y = est)) +
   geom_point(aes(x = as.factor(par_n), y = true), color = "red", shape = 21) +
   ggsidekick::theme_sleek() +
