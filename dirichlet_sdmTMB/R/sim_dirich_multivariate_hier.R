@@ -31,7 +31,7 @@ n <- n_sites * n_obs_per_site
 # v1 - common variance, zero covariance (controlled by phi)
 r_sig_mat <- diag(x = sd_site, nrow = J, ncol = J)
 r_int_mat <- MASS::mvrnorm(n_sites, rep(0, J), r_sig_mat)
-colnames(r_int_mat) <- paste("alpha_j", seq(1, n_cat, 1), sep = "")
+colnames(r_int_mat) <- paste("alpha_j", seq(1, J, 1), sep = "")
 site_dat_multi <- data.frame(site = seq(1, n_sites, 1)) %>%
   cbind(., r_int_mat)
 
@@ -108,7 +108,7 @@ f_sim <- function(trial = 1) {
 
   return(list("trial" = trial, "obs" = Y, "noisey_obs" = Y2,
               "fixed_fac" = dat3$strata_f,
-              "rand_mean" = site_dat$site_mean, "rand_fac" = dat3$site_f,
+              "rand_mean" = rand_eff, "rand_fac" = dat3$site_f,
               "full_data" = dat3, "fixed_ppns" = pi, "pred_ppns" = pred_pi
   ))
 }
@@ -139,8 +139,8 @@ list(unique(sims[[1]]$fixed_ppns),
 
 
 # compile models
-compile(here::here("dirichlet_sdmTMB", "src", "dirichlet_randInt.cpp"))
-dyn.load(dynlib(here::here("dirichlet_sdmTMB", "src", "dirichlet_randInt")))
+# compile(here::here("dirichlet_sdmTMB", "src", "dirichlet_randInt.cpp"))
+# dyn.load(dynlib(here::here("dirichlet_sdmTMB", "src", "dirichlet_randInt")))
 compile(here::here("dirichlet_sdmTMB", "src", "dirichlet_multivariate_randInt.cpp"))
 dyn.load(dynlib(here::here("dirichlet_sdmTMB", "src", "dirichlet_multivariate_randInt")))
 
@@ -164,7 +164,7 @@ fit_list_hier <- map(sims, function(sims_in) {
     ),
     parameters = list(z_ints = beta_in,
                       z_rfac = rand_int_in,
-                      log_sigma_rfac = rnorm(1, log(sd_site), 0.5)
+                      log_sigma_rfac = log(sd_site)
     ),
     random = c("z_rfac"),
     DLL = "dirichlet_multivariate_randInt"
@@ -180,8 +180,8 @@ fit_list_hier <- map(sims, function(sims_in) {
     true = as.vector(beta0)
   )
   rand_eff <- data.frame(
-    par = c(rep("alpha", n_rfac), "sigma_a"),
-    par_n = c(seq(1, n_rfac, by = 1), 1),
+    par = c(rep("alpha", n_rfac * J), "sigma_a"),
+    par_n = c(seq(1, n_rfac * J, by = 1), 1),
     est = c(ssdr[rownames(ssdr) %in% "z_rfac" , 1],
             ssdr[rownames(ssdr) %in% "sigma_rfac" , 1]),
     true = c(unique(sims_in$rand_mean), sd_site)

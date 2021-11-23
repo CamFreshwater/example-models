@@ -15,8 +15,7 @@ Type objective_function<Type>::operator() ()
   // parameter inputs
   PARAMETER_MATRIX(z_ints); // parameter matrix
   PARAMETER_MATRIX(z_rfac);  // matrix of random intercepts (n_rfac x n_cat)
-  PARAMETER_MATRIX(log_sigma_rfac); // diagonal matrix of random intercept SD
-  // PARAMETER(log_sigma_rfac); // among random intercept SD
+  PARAMETER(log_sigma_rfac); // among random intercept SD
 
   // The dimensions of data
   int n_obs = y_obs.rows();         // number of observations
@@ -56,30 +55,30 @@ Type objective_function<Type>::operator() ()
 
 
   // make covariance matrix
-  // matrix<Type> sigma_mat(n_cat, n_cat);
-  // for (int j = 0; j < n_cat; j++) {
-  //   for (int jj = 0; jj < n_cat; jj++) {
-  //     if (j == jj) {
-  //       sigma_mat(j, jj) = exp(log_sigma_rfac);
-  //     } else {
-  //       sigma_mat(j, jj) = 0;
-  //     }
-  //   }
-  // }
+  matrix<Type> cov_mat(n_cat, n_cat);
+  for (int j = 0; j < n_cat; j++) {
+    for (int jj = 0; jj < n_cat; jj++) {
+      if (j == jj) {
+        cov_mat(j, jj) = exp(log_sigma_rfac) * exp(log_sigma_rfac);
+      } else {
+        cov_mat(j, jj) = 0;
+      }
+    }
+  }
 
   // Probability of multivariate random intercepts
   for (int h = 0; h < n_rfac; h++) {
     vector<Type> z_rfac_vec = z_rfac.row(h);
     // jnll -= density::MVNORM(sigma_mat)(z_rfac_vec);
-    MVNORM_t<Type> neg_log_dmvnorm(log_sigma_rfac);
+    MVNORM_t<Type> neg_log_dmvnorm(cov_mat);
     jnll += neg_log_dmvnorm(z_rfac_vec);
   }
 
   // N_0_Sigma.cov();                   // Returns covariance matrix (Sigma in this case)
   // REPORT(N_0_Sigma.cov());           // Report back to R
 
-  // Type sigma_rfac = exp(log_sigma_rfac);
-  ADREPORT(log_sigma_rfac);
+  Type sigma_rfac = exp(log_sigma_rfac);
+  ADREPORT(sigma_rfac);
   
   // calculate predictions
   // matrix<Type> pred_eff(n_levels, n_cat);    //pred effects on log scale
