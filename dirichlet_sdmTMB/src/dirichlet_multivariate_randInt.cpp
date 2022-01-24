@@ -11,6 +11,7 @@ Type objective_function<Type>::operator() ()
   DATA_IVECTOR(rfac);    // vector of random factor levels
   DATA_INTEGER(n_rfac);  // number of random factor levels
   DATA_MATRIX(pred_cov);    // model matrix for predictions
+  // DATA_IVECTOR(pred_factor1k_i); // vector of predicted random intercepts
 
   // parameter inputs
   PARAMETER_MATRIX(z_ints); // parameter matrix
@@ -81,7 +82,8 @@ Type objective_function<Type>::operator() ()
   ADREPORT(sigma_rfac);
   
   // calculate predictions
-  // matrix<Type> pred_eff(n_levels, n_cat);    //pred effects on log scale
+  // matrix<Type> pred_eff_fe(n_levels, n_cat);    //pred fixed effects on log scale
+  // matrix<Type> pred_eff(n_levels, n_cat);    //pred FE + RE on log scale
   // matrix<Type> pred_gamma(n_levels, n_cat);  //transformed pred effects 
   // vector<Type> pred_gamma_plus(n_levels);        
   // vector<Type> pred_theta(n_levels); 
@@ -89,7 +91,15 @@ Type objective_function<Type>::operator() ()
   // vector<Type> pred_n_plus(n_levels); 
   // matrix<Type> pred_pi_prop(n_levels, n_cat); // predicted counts as ppn.
 
-  // pred_eff = pred_cov * z_ints; 
+  // pred_eff_fe = pred_cov * z_ints; 
+
+  // for (int i = 0; i < n_obs; ++i) {
+  //   for(int k = 0; k < n_cat; k++) {
+  //     pred_eff(i, k) = pred_eff_fe(i, k) + z_rfac(pred_factor1k_i(i), k);
+  //   }
+  // }
+
+  
   // pred_gamma = exp(pred_eff.array());
   // pred_gamma_plus = pred_gamma.rowwise().sum();
   // pred_theta = 1 / (pred_gamma_plus + 1);
