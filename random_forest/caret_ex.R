@@ -198,3 +198,19 @@ rdaFit <- train(Class ~ ., data = training,
                 tuneLength = 4,
                 metric = "ROC")
 rdaFit
+
+
+## V. SIMPLE EXAMPLE -----------------------------------------------------------
+
+# load the library
+library(caret)
+# load the iris dataset
+data(iris)
+# define training control
+train_control <- trainControl(method="cv", number=10)
+# fix the parameters of the algorithm
+grid <- expand.grid(.fL=c(0), .usekernel=c(FALSE))
+# train the model
+model <- train(Species~., data=iris, trControl=train_control, method="nb")
+# summarize results
+print(model)
