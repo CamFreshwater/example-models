@@ -2,6 +2,9 @@
 # random intercepts; based on models from following repo:
 # https://github.com/carriegu/STAT-840/tree/master/DMRegression
 
+# Update Nov 2021 -- add MVN random intercepts
+# Update Mar 2022 -- add conditionals for MVN and for RI predictions
+
 library(dirmult)
 library(TMB)
 library(tidyverse)
@@ -138,8 +141,10 @@ dum %>%
 ## COMPARE PARAMETER ESTIMATES -------------------------------------------------
 
 # compile models
-compile(here::here("dirichlet_sdmTMB", "src", "dirichlet_multivariate_randInt.cpp"))
-dyn.load(dynlib(here::here("dirichlet_sdmTMB", "src", "dirichlet_multivariate_randInt")))
+compile(here::here("dirichlet_sdmTMB", "src",
+                   "dirichlet_multivariate_randInt.cpp"))
+dyn.load(dynlib(here::here("dirichlet_sdmTMB", "src",
+                           "dirichlet_multivariate_randInt")))
 
 
 #fit models with all data
@@ -267,7 +272,7 @@ coef_dat_hier2 <- fit_list_hier_noisey %>%
 
 coef_dat_hier <- rbind(coef_dat_hier1, coef_dat_hier2)
 
-ggplot(coef_dat_hier) +
+ggplot(coef_dat_hier1) +
   geom_boxplot(aes(x = as.factor(par_n), y = est)) +
   geom_point(aes(x = as.factor(par_n), y = true), color = "red", shape = 21) +
   ggsidekick::theme_sleek() +
@@ -322,8 +327,8 @@ rand_int_in <- matrix(0, n_rfac, J)
 obj <- MakeADFun(
   data = list(fx_cov = X,
               y_obs = Y_in,
-              pred_cov = pred_cov_site,
-              pred_factor1k_i = pred_dat_site$site - 1,
+              pred_cov = pred_cov,#pred_cov_site,
+              pred_factor1k_i = rep(0, nrow(pred_dat)),#pred_dat_site$site - 1,
               rfac = rfac,
               n_rfac = n_rfac
   ),
