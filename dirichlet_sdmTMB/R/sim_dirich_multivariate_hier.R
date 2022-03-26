@@ -327,10 +327,11 @@ rand_int_in <- matrix(0, n_rfac, J)
 obj <- MakeADFun(
   data = list(fx_cov = X,
               y_obs = Y_in,
-              pred_cov = pred_cov,#pred_cov_site,
-              pred_factor1k_i = rep(0, nrow(pred_dat)),#pred_dat_site$site - 1,
+              pred_cov = pred_cov_site,
+              pred_factor1k_i = pred_dat_site$site - 1,
               rfac = rfac,
-              n_rfac = n_rfac
+              n_rfac = n_rfac,
+              pred_re_flag = 0
   ),
   parameters = list(z_ints = beta_in,
                     z_rfac = rand_int_in,
@@ -343,13 +344,13 @@ obj <- MakeADFun(
 opt <- nlminb(obj$par, obj$fn, obj$gr)
 sdr <- sdreport(obj)
 ssdr <- summary(sdr)
+ssdr2 <- summary(sdr)
 
-pred_eff <- ssdr[rownames(ssdr) %in% "pred_eff" , ]
 pred_ppn <- ssdr[rownames(ssdr) %in% "pred_pi_prop" , ]
-
+pred_ppn2 <- ssdr2[rownames(ssdr2) %in% "pred_pi_prop" , ]
 
 cat_seq <- seq(1, J, by = 1)
-new_dat_site <- purrr::map(cat_seq, function (x) {
+pred_dat_site <- purrr::map(cat_seq, function (x) {
   dum <- pred_dat_site
   dum$cat <- x
   return(dum)
@@ -360,17 +361,89 @@ new_dat_site <- purrr::map(cat_seq, function (x) {
          site_f = as.factor(site))
 
 
-dum <- sims[[1]]$full_data %>%
+sims_dat <- sims[[1]]$full_data %>%
   pivot_longer(cols = `1`:`3`, names_to = "cat", values_to = "count") %>%
   group_by(strata_f, site_f, cat) %>%
   summarize(ppn_obs = count / N) %>%
   ungroup()
 
 ggplot() +
-  geom_boxplot(data = dum, aes(x = strata_f, y = ppn_obs, fill = cat)) +
-  geom_point(data = new_dat_site,
+  geom_boxplot(data = sims_dat, aes(x = strata_f, y = ppn_obs, fill = cat)) +
+  geom_point(data = pred_dat_site,
              aes(x = strata_f, y = est, shape = as.factor(cat)),
              colour = "yellow", position=position_dodge(0.8)) +
   ggsidekick::theme_sleek() +
   facet_wrap(~site_f)
 
+
+# as above but reverting to random intercepts that do not vary among groups
+# (i.e. vector not matrix)
+
+compile(here::here("dirichlet_sdmTMB", "src",
+                   "dirichlet_randInt.cpp"))
+dyn.load(dynlib(here::here("dirichlet_sdmTMB", "src",
+                           "dirichlet_randInt")))
+
+rand_int_in_vec <- rep(0, n_rfac)
+
+obj <- MakeADFun(
+  data = list(fx_cov = X,
+              y_obs = Y_in,
+              pred_cov = pred_cov_site,
+              pred_factor1k_i = pred_dat_site$site - 1,
+              rfac = rfac,
+              n_rfac = n_rfac,
+              pred_re_flag = 0
+  ),
+  parameters = list(z_ints = beta_in,
+                    z_rfac = rand_int_in_vec,
+                    log_sigma_rfac = 0.1
+  ),
+  random = c("z_rfac"),
+  DLL = "dirichlet_randInt"
+)
+
+opt <- nlminb(obj$par, obj$fn, obj$gr)
+sdr <- sdreport(obj)
+ssdr2 <- summary(sdr)
+
+pred_ppn <- ssdr[rownames(ssdr) %in% "pred_pi_prop" , ]
+pred_ppn2 <- ssdr2[rownames(ssdr2) %in% "pred_pi_prop" , ]
+
+cat_seq <- seq(1, J, by = 1)
+model_preds <- purrr::map(cat_seq, function (x) {
+  dum <- pred_dat_site
+  dum$cat <- x
+  return(dum)
+}) %>%
+  bind_rows() %>%
+  cbind(., est = pred_ppn[, "Estimate"]) %>%
+  mutate(cat = as.factor(cat),
+         site_f = as.factor(site))
+model_preds2 <- purrr::map(cat_seq, function (x) {
+  dum <- pred_dat_site
+  dum$cat <- x
+  return(dum)
+}) %>%
+  bind_rows() %>%
+  cbind(., est = pred_ppn2[, "Estimate"]) %>%
+  mutate(cat = as.factor(cat),
+         site_f = as.factor(site))
+
+
+sims_dat <- sims[[1]]$full_data %>%
+  pivot_longer(cols = `1`:`3`, names_to = "cat", values_to = "count") %>%
+  group_by(strata_f, site_f, cat) %>%
+  summarize(ppn_obs = count / N) %>%
+  ungroup()
+
+ggplot() +
+  geom_boxplot(data = sims_dat, aes(x = strata_f, y = ppn_obs, fill = cat)) +
+  geom_point(data = model_preds,
+             aes(x = strata_f, y = est, shape = as.factor(cat)),
+             colour = "yellow", position=position_dodge(0.8)) +
+  geom_point(data = model_preds2,
+             aes(x = strata_f, y = est, shape = as.factor(cat)),
+             colour = "red", position=position_dodge(0.8)) +
+  ggsidekick::theme_sleek() +
+  facet_wrap(~site_f)
