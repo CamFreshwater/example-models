@@ -8,6 +8,8 @@ Type objective_function<Type>::operator() ()
   DATA_IVECTOR(rfac);    // vector of random factor levels
   DATA_INTEGER(n_rfac);  // number of random factor levels
   DATA_MATRIX(pred_cov);    // model matrix for predictions
+  DATA_IVECTOR(pred_factor1k_i); // vector of predicted random intercepts
+  DATA_INTEGER(pred_re_flag); // should predictions include RIs?
 
   // parameter inputs
   PARAMETER_MATRIX(z_ints); // parameter matrix
@@ -68,6 +70,15 @@ Type objective_function<Type>::operator() ()
   matrix<Type> pred_pi_prop(n_levels, n_cat); // predicted counts as ppn.
 
   pred_eff = pred_cov * z_ints; 
+  
+  if (pred_re_flag == 1) {
+    for (int i = 0; i < n_levels; ++i) {
+      for(int k = 0; k < n_cat; k++) {
+        pred_eff(i, k) = pred_eff(i, k) + z_rfac(pred_factor1k_i(i));
+      }
+    } 
+  }
+
   pred_gamma = exp(pred_eff.array());
   pred_gamma_plus = pred_gamma.rowwise().sum();
   pred_theta = 1 / (pred_gamma_plus + 1);
@@ -85,8 +96,8 @@ Type objective_function<Type>::operator() ()
 
   REPORT(pred_gamma);
   ADREPORT(pred_gamma);
-  REPORT(pred_pi);
-  ADREPORT(pred_pi);
+  // REPORT(pred_pi);
+  // ADREPORT(pred_pi);
   REPORT(pred_pi_prop);
   ADREPORT(pred_pi_prop);
   
