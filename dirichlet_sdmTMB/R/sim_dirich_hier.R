@@ -15,7 +15,6 @@ set.seed(42)
 J <- 3 #n categories (e.g. stocks)
 P <- 2 #n categorical fixed effects (or covariates - 1 if some continuous)
 # n <- 50 #n observations (e.g. total sampling events)
-N <- sample(c(30:250), n, replace = TRUE) #sample size per observation
 
 
 # random intercepts for groups (e.g. sites)
@@ -26,6 +25,8 @@ n <- n_sites * n_obs_per_site
 site_dat <- data.frame(site = seq(1, n_sites, 1),
                        site_mean = rnorm(mean = 0, sd = sd_site,
                                          n = n_sites))
+
+N <- sample(c(30:250), n, replace = TRUE) #sample size per observation
 
 
 # input data frame and design matrix
@@ -41,7 +42,7 @@ beta0 <- matrix(rnorm((ncol(X)) * J), ncol(X), J)
 # model matrix for predictions
 pred_dat <- dat %>%
   arrange(strata_f) %>%
-  select(strata_f) %>%
+  dplyr::select(strata_f) %>%
   distinct()
 pred_cov <- model.matrix(~strata_f + 0, pred_dat)
 
